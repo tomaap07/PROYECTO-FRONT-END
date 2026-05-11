@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo - RegistroCine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js" defer></script>
+</head>
+<body>
+    <div id="nav-placeholder"></div>
+
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold">🎬 Gestión de Catálogo</h2>
+            <a href="../index.html" class="btn btn-outline-secondary shadow-sm">← Volver al Inicio</a>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card shadow-sm p-4 border-0">
+                    <h5 class="fw-bold mb-3">Registrar Película</h5>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Título</label>
+                        <input type="text" id="input-nombre" class="form-control" placeholder="Nombre de la peli">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Género</label>
+                        <select id="select-genero" class="form-select">
+                            <option value="Acción">Acción</option>
+                            <option value="Drama">Drama</option>
+                            <option value="Comedia">Comedia</option>
+                            <option value="Ciencia Ficción">Ciencia Ficción</option>
+                            <option value="Terror">Terror</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Puntaje (1-10)</label>
+                        <input type="number" id="input-puntaje" class="form-control" min="1" max="10">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Comentario</label>
+                        <textarea id="input-comentario" class="form-control" rows="2" placeholder="¿Qué te pareció?"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="check-favorita">
+                        <label class="form-check-label fw-bold" for="check-favorita">Marcar como Favorita ❤️</label>
+                    </div>
+                    <button class="btn btn-success w-100 fw-bold shadow-sm" onclick="registrarPelicula()">✅ Guardar en Catálogo</button>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm p-3 mb-4 border-0">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <input type="text" id="buscador" class="form-control" placeholder="🔍 Buscar por título..." onkeyup="renderizarLista()">
+                        </div>
+                        <div class="col-md-3">
+                            <select id="filtro-genero" class="form-select" onchange="renderizarLista()">
+                                <option value="Todos">Todos los géneros</option>
+                                <option value="Acción">Acción</option>
+                                <option value="Drama">Drama</option>
+                                <option value="Comedia">Comedia</option>
+                                <option value="Ciencia Ficción">Ciencia Ficción</option>
+                                <option value="Terror">Terror</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="filtro-favoritas" class="form-select" onchange="renderizarLista()">
+                                <option value="Todas">Ver Todas</option>
+                                <option value="Favoritas">Favoritas ❤️</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="lista-peliculas" class="row"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => { renderizarLista(); });
+
+        function registrarPelicula() {
+            const nombre = document.getElementById("input-nombre").value;
+            const genero = document.getElementById("select-genero").value;
+            const puntaje = document.getElementById("input-puntaje").value;
+            const comentario = document.getElementById("input-comentario").value;
+            const favorita = document.getElementById("check-favorita").checked;
+
+            if(!nombre || !puntaje) { alert("Nombre y puntaje obligatorios"); return; }
+
+            const actuales = leer("datos_cine", []);
+            actuales.push({ id: Date.now(), nombre, genero, puntaje, comentario, favorita });
+            guardar("datos_cine", actuales);
+            
+            document.getElementById("input-nombre").value = "";
+            document.getElementById("input-puntaje").value = "";
+            document.getElementById("input-comentario").value = "";
+            document.getElementById("check-favorita").checked = false;
+            renderizarLista();
+        }
+
+        function renderizarLista() {
+            const lista = leer("datos_cine", []);
+            const busqueda = document.getElementById("buscador").value.toLowerCase();
+            const generoFiltro = document.getElementById("filtro-genero").value;
+            const favoritaFiltro = document.getElementById("filtro-favoritas").value;
+            const contenedor = document.getElementById("lista-peliculas");
+            
+            contenedor.innerHTML = "";
+
+            const filtrados = lista.filter(p => {
+                const matchNombre = p.nombre.toLowerCase().includes(busqueda);
+                const matchGenero = generoFiltro === "Todos" || p.genero === generoFiltro;
+                const matchFavorita = favoritaFiltro === "Todas" || (favoritaFiltro === "Favoritas" && p.favorita);
+                return matchNombre && matchGenero && matchFavorita;
+            });
+
+            filtrados.forEach(p => {
+                contenedor.innerHTML += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="fw-bold text-primary mb-1">${p.nombre} ${p.favorita ? '❤️' : ''}</h5>
+                                <p class="text-muted small mb-2">${p.genero} | ⭐ <b>${p.puntaje}/10</b></p>
+                                <div class="comentario-texto small p-2 rounded mb-2">
+                                    <i>"${p.comentario || 'Sin comentarios'}"</i>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger w-100" onclick="borrarPeli(${p.id})">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function borrarPeli(id) {
+            let lista = leer("datos_cine", []);
+            lista = lista.filter(p => p.id !== id);
+            guardar("datos_cine", lista);
+            renderizarLista();
+        }
+    </script>
+</body>
+</html>
